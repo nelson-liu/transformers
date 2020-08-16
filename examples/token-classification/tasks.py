@@ -161,3 +161,107 @@ class POS(TokenClassificationTask):
                 "VERB",
                 "X",
             ]
+
+
+class XPOS(TokenClassificationTask):
+    FIELDS = ["id", "form", "lemma", "coarse_pos", "pos"]
+
+    @staticmethod
+    def parse_sentence(sentence: str):
+        annotated_sentence = []
+
+        lines = [line for line in sentence.split("\n")
+                 if line and not line.strip().startswith("#")]
+
+        for line_idx, line in enumerate(lines):
+            annotated_token = dict(zip(XPOS.FIELDS, line.split("\t")))
+            annotated_sentence.append(annotated_token)
+
+        return annotated_sentence
+
+    @staticmethod
+    def lazy_parse(text: str):
+        for sentence in text.split("\n\n"):
+            if sentence:
+                yield XPOS.parse_sentence(sentence)
+
+    def read_examples_from_file(self, data_dir, mode: Union[Split, str]) -> List[InputExample]:
+        if isinstance(mode, Split):
+            mode = mode.value
+        file_path = os.path.join(data_dir, f"{mode}.txt")
+        guid_index = 1
+        examples = []
+
+        with open(file_path, encoding="utf-8") as f:
+            for annotation in self.lazy_parse(f.read()):
+                words = [x["form"] for x in annotation]
+                labels = [x["pos"] for x in annotation]
+                assert len(words) == len(labels)
+                if words:
+                    examples.append(InputExample(guid=f"{mode}-{guid_index}", words=words, labels=labels))
+                    guid_index += 1
+        return examples
+
+    def write_predictions_to_file(self, writer: TextIO, test_input_reader: TextIO, preds_list: List):
+        example_id = 0
+        for sentence in self.lazy_parse(test_input_reader):
+            s_p = preds_list[example_id]
+            out = ""
+            for token in sentence:
+                out += f'{token["form"]} ({token["pos"]}|{s_p.pop(0)}) '
+            out += "\n"
+            writer.write(out)
+            example_id += 1
+
+    def get_labels(self, path: str) -> List[str]:
+        if path:
+            with open(path, "r") as f:
+                return f.read().splitlines()
+        else:
+            return [
+                '#',
+                'VBP',
+                ':',
+                'CD',
+                'WRB',
+                'VB',
+                '-RRB-',
+                'NNP',
+                'VBN',
+                'EX',
+                '$',
+                'NNS',
+                'NNPS',
+                'JJR',
+                'VBZ',
+                'PDT',
+                'MD',
+                'TO',
+                "''",
+                'WP$',
+                'POS',
+                '.',
+                'NN',
+                'LS',
+                ',',
+                'UH',
+                'PRP$',
+                'CC',
+                'RP',
+                'RBR',
+                'VBG',
+                'PRP',
+                'WDT',
+                'JJS',
+                'DT',
+                'VBD',
+                'JJ',
+                '``',
+                'FW',
+                'RB',
+                'IN',
+                'SYM',
+                'WP',
+                'RBS',
+                '-LRB-'
+            ]
