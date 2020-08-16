@@ -204,7 +204,7 @@ class XPOS(TokenClassificationTask):
 
     def write_predictions_to_file(self, writer: TextIO, test_input_reader: TextIO, preds_list: List):
         example_id = 0
-        for sentence in self.lazy_parse(test_input_reader):
+        for sentence in self.lazy_parse(test_input_reader.read()):
             s_p = preds_list[example_id]
             out = ""
             for token in sentence:
