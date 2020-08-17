@@ -207,10 +207,11 @@ class XPOS(TokenClassificationTask):
         for sentence in self.lazy_parse(test_input_reader.read()):
             s_p = preds_list[example_id]
             out = ""
-            for token in sentence:
-                out += f'{token["form"]} ({token["pos"]}|{s_p.pop(0)}) '
-            out += "\n"
-            writer.write(out)
+            words = [token["form"] for token in sentence]
+            gold = [token["pos"] for token in sentence]
+            predicted = [str(x) for x in s_p]
+            out = json.dumps({"words": words, "gold": gold, "predicted": predicted})
+            writer.write(out + "\n")
             example_id += 1
 
     def get_labels(self, path: str) -> List[str]:
